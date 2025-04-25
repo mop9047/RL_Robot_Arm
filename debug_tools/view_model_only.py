@@ -2,7 +2,7 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 
-model = mujoco.MjModel.from_xml_path("threedof/threedof.xml")
+model = mujoco.MjModel.from_xml_path("armModel_threedof/threedof.xml")
 data = mujoco.MjData(model)
 
 with mujoco.viewer.launch_passive(model, data) as viewer:

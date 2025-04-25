@@ -64,6 +64,7 @@
               <geom name="forearm_collision" pos="-0.00061 0.00121 0.32742" quat="0.707105 0.707108 0 0" type="mesh" mesh="forearm" contype="1" conaffinity="0" density="0" group="1" class="visualgeom" />
               <geom type="mesh" rgba="" mesh="forearm" pos="-0.00061 0.00121 0.32742" quat="0.707105 0.707108 0 0" />
               <body name="palm_link" pos="0 0 0.61571">
+                <site name="end_effector_site" size="0.01" pos="-0.00568 0.03 0.14686" />
                 <inertial pos="-0.00568 -0.00267 0.14686" quat="0.704791 -0.0987436 -0.108121 0.694139" mass="0.2" diaginertia="0.00258044 0.00166819 0.00109138" />
                 <joint name="ind0_link_joint" pos="0 0 0" axis="-1 0 0" range="-3.14 3.14" damping="10" stiffness="50" />
                 <body name="palm_link.001">
