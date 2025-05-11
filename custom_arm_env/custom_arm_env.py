@@ -31,6 +31,7 @@ class CustomArmEnv(MujocoEnv, utils.EzPickle):
             reward_near_weight: float = 0.5,
             reward_dist_weight: float = 2,
             reward_control_weight: float = 0.1,
+            idle_penalty_rate: float = 0.1,
             **kwargs,
         ):
 
@@ -44,6 +45,12 @@ class CustomArmEnv(MujocoEnv, utils.EzPickle):
                 reward_control_weight,
                 **kwargs,
         )
+            
+            self._idle_penalty_rate = idle_penalty_rate
+            self._time_steps = 0
+            self._prev_dist_ee_cube = None  # To track previous distance
+            self._time_without_progress = 0  # Track time without approaching cube
+    
             self.model = mujoco.MjModel.from_xml_path(xml_file)
             self.data = mujoco.MjData(self.model)
 
@@ -86,6 +93,9 @@ class CustomArmEnv(MujocoEnv, utils.EzPickle):
     def step(self, action):
         self.do_simulation(action, self.frame_skip)
         obs = self._get_obs()
+
+        self._time_steps += 1
+
         reward, reward_info = self._get_rew(action)
         info = reward_info
         
@@ -104,6 +114,25 @@ class CustomArmEnv(MujocoEnv, utils.EzPickle):
         dist_ee_cube = np.linalg.norm(side_ee - side_cube)  # Distance between end-effector and cube
         dist_cube_goal = np.linalg.norm(side_cube - side_goal)  # Distance between cube and goal
 
+          # Calculate idle penalty based on progress toward cube
+        reward_idle = 0
+        if self._prev_dist_ee_cube is not None:
+            # Check if the arm is making progress toward the cube
+            progress = self._prev_dist_ee_cube - dist_ee_cube
+            
+            # If not making sufficient progress (using a small threshold)
+            if progress < 0.005:  # Adjust this threshold as needed
+                self._time_without_progress += self.frame_skip / 100.0  # Convert to seconds
+                # Apply penalty every other second of no progress
+                if self._time_without_progress >= 2.0:
+                    reward_idle = -self._idle_penalty_rate * (self._time_without_progress // 2.0)
+            else:
+                # Reset the counter when making progress
+                self._time_without_progress = 0
+        
+        # Store current distance for next comparison
+        self._prev_dist_ee_cube = dist_ee_cube
+
         # Reward for bringing the end-effector closer to the cube
         reward_near = -dist_ee_cube * 5.0  # Increased weight for bringing the arm closer to the cube
 
@@ -121,7 +150,7 @@ class CustomArmEnv(MujocoEnv, utils.EzPickle):
         
         reward_grasp = 1.0 if dist_ee_cube < 0.05 else 0
         # Total reward is a combination of the above factors
-        reward = reward_near + reward_dist + reward_ctrl + reward_lift + reward_grasp
+        reward = reward_near + reward_dist + reward_ctrl + reward_lift + reward_grasp + reward_idle
 
         reward_info = {
             "reward_dist": reward_dist,
@@ -148,6 +177,10 @@ class CustomArmEnv(MujocoEnv, utils.EzPickle):
         )
 
     def reset_model(self):
+        self._time_steps = 0
+        self._prev_dist_ee_cube = None
+        self._time_without_progress = 0
+
         qpos = self.init_qpos
 
         self.goal_pos = np.asarray([0, 0])

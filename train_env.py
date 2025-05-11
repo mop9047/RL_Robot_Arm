@@ -35,7 +35,7 @@ else:
         model = SAC("MlpPolicy", env, verbose=1)
 
 # Continue training
-model.learn(total_timesteps=2000)
+model.learn(total_timesteps=20000)
 
 # Save the updated model
 model.save(model_path)
